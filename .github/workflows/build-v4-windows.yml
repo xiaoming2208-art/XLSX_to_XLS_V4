@@ -19,7 +19,7 @@ jobs:
         with:
           arch: x64
 
-      -       - name: Build native Windows EXE
+      - name: Build native Windows EXE
         shell: cmd
         run: |
           if not exist release mkdir release
