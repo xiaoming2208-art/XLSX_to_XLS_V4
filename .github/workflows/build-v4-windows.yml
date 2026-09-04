@@ -1,0 +1,133 @@
+name: Build V4.0 Windows Portable Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build native Windows EXE
+        shell: cmd
+        run: |
+          if not exist release mkdir release
+          cl /nologo /O2 /GL /EHsc /utf-8 /DUNICODE /D_UNICODE ^
+            src\main.cpp ^
+            /link /LTCG /SUBSYSTEM:WINDOWS ^
+            /OUT:release\XLSX_to_XLS_V4.0.exe
+
+      - name: Install LibreOffice
+        shell: powershell
+        run: |
+          choco install libreoffice-fresh -y --no-progress
+
+          $lo = "C:\Program Files\LibreOffice"
+
+          if (!(Test-Path $lo)) {
+            throw "LibreOffice installation not found: $lo"
+          }
+
+      - name: Create Portable Release Folder
+        shell: powershell
+        run: |
+          $portable = "release\XLSX_to_XLS_V4.0_Portable"
+
+          New-Item -ItemType Directory -Force -Path $portable | Out-Null
+
+          Copy-Item `
+            "release\XLSX_to_XLS_V4.0.exe" `
+            $portable `
+            -Force
+
+          Copy-Item `
+            "C:\Program Files\LibreOffice" `
+            "$portable\LibreOffice" `
+            -Recurse `
+            -Force
+
+          @"
+          XLSX_to_XLS V4.0
+          Native Windows Portable
+
+          使用方式：
+
+          1. 請保持整個資料夾完整。
+          2. 不要單獨複製 EXE。
+          3. 雙擊 XLSX_to_XLS_V4.0.exe。
+          4. 選擇一個或多個 XLSX 檔案。
+          5. 轉換結果會輸出到：
+
+             XLS_轉換完成
+
+          本版本：
+
+          - 不需要 Python
+          - 不需要 .NET
+          - 不需要 Microsoft Excel
+          - 不使用 Excel COM
+          - 不需要 BUILD.cmd
+          - 不需要 BAT
+          - 不需要 PowerShell
+          - 不需要 NuGet
+
+          LibreOffice 資料夾為 XLSX -> XLS
+          實際轉換引擎，請勿刪除。
+          "@ | Set-Content `
+            "$portable\README_部署說明.txt" `
+            -Encoding UTF8
+
+      - name: Validate Windows EXE
+        shell: powershell
+        run: |
+          $exe = "release\XLSX_to_XLS_V4.0_Portable\XLSX_to_XLS_V4.0.exe"
+
+          if (!(Test-Path $exe)) {
+            throw "XLSX_to_XLS_V4.0.exe was not created."
+          }
+
+          $bytes = [System.IO.File]::ReadAllBytes($exe)
+
+          if ($bytes.Length -lt 2) {
+            throw "Invalid EXE."
+          }
+
+          if ($bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw "Invalid Windows PE executable."
+          }
+
+          $soffice = "release\XLSX_to_XLS_V4.0_Portable\LibreOffice\program\soffice.exe"
+
+          if (!(Test-Path $soffice)) {
+            throw "LibreOffice conversion engine is missing."
+          }
+
+          Write-Host "Windows EXE validation passed."
+          Write-Host "LibreOffice engine validation passed."
+
+      - name: Create Portable ZIP
+        shell: powershell
+        run: |
+          Compress-Archive `
+            -Path "release\XLSX_to_XLS_V4.0_Portable\*" `
+            -DestinationPath "release\XLSX_to_XLS_V4.0_Windows_Portable.zip" `
+            -Force
+
+      - name: Upload Portable Release
+        uses: actions/upload-artifact@v4
+        with:
+          name: XLSX_to_XLS_V4.0_Windows_Portable
+          path: release/XLSX_to_XLS_V4.0_Windows_Portable.zip
+          if-no-files-found: error
+          retention-days: 30
