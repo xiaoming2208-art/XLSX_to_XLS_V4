@@ -19,12 +19,17 @@ jobs:
         with:
           arch: x64
 
-      - name: Build native Windows EXE
+      -       - name: Build native Windows EXE
         shell: cmd
         run: |
           if not exist release mkdir release
           cl /nologo /O2 /GL /EHsc /utf-8 /DUNICODE /D_UNICODE ^
             src\main.cpp ^
+            user32.lib ^
+            gdi32.lib ^
+            comdlg32.lib ^
+            shell32.lib ^
+            shlwapi.lib ^
             /link /LTCG /SUBSYSTEM:WINDOWS ^
             /OUT:release\XLSX_to_XLS_V4.0.exe
 
