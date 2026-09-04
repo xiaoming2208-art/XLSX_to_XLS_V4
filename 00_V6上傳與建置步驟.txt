@@ -1,0 +1,24 @@
+V6.0 加入目前同一個 Repository：
+
+1. 上傳：
+   src/main.py
+   requirements.txt
+   README_V6_繁體中文.md
+   00_V6上傳與建置步驟.txt
+
+2. 新增 GitHub Workflow：
+   .github/workflows/build-v6-windows.yml
+
+3. GitHub → Actions
+   → Build V6.0 Production Stable Portable
+   → Run workflow
+
+4. Build 成功後下載：
+   XLSX_to_XLS_V6.0_Windows_Portable
+
+5. 解壓縮後，把整個：
+   XLSX_to_XLS_V6.0_Portable
+   複製到其他電腦。
+
+6. 執行：
+   XLSX_to_XLS_V6.0.exe
