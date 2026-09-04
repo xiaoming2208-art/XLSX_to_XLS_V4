@@ -1,0 +1,14 @@
+V5.0 快速建置
+
+GitHub:
+Actions
+→ Build V5.0 True Single EXE
+→ Run workflow
+
+成功後下載 Artifact：
+XLSX_to_XLS_V5.0_TRUE_SINGLE_EXE
+
+解壓後只有：
+XLSX_to_XLS_V5.0.exe
+
+這一顆 EXE 就是正式 Portable 成品。
