@@ -1,0 +1,83 @@
+name: Build V5.0 True Single EXE
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+
+      - name: Download SheetJS CE 0.20.3
+        shell: powershell
+        run: |
+          $url = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"
+          $dst = "cmd\xlsx2xls\xlsx.full.min.js"
+          Invoke-WebRequest -Uri $url -OutFile $dst
+          if (!(Test-Path $dst)) {
+            throw "SheetJS download failed."
+          }
+
+      - name: Add Go dependencies
+        shell: powershell
+        run: |
+          go get github.com/dop251/goja@latest
+          go mod tidy
+
+      - name: Build true single EXE
+        shell: powershell
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 0
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+
+          go build `
+            -trimpath `
+            -ldflags="-s -w -H=windowsgui" `
+            -o release\XLSX_to_XLS_V5.0.exe `
+            .\cmd\xlsx2xls
+
+      - name: Validate single EXE
+        shell: powershell
+        run: |
+          $exe = "release\XLSX_to_XLS_V5.0.exe"
+
+          if (!(Test-Path $exe)) {
+            throw "EXE missing."
+          }
+
+          $bytes = [System.IO.File]::ReadAllBytes($exe)
+
+          if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw "Invalid Windows PE EXE."
+          }
+
+          $files = Get-ChildItem release -File
+
+          if ($files.Count -ne 1) {
+            throw "V5.0 release must contain exactly one file."
+          }
+
+          Write-Host "Single EXE validation passed:"
+          Write-Host $exe
+
+      - name: Upload V5.0 EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: XLSX_to_XLS_V5.0_TRUE_SINGLE_EXE
+          path: release/XLSX_to_XLS_V5.0.exe
+          if-no-files-found: error
+          retention-days: 30
