@@ -1,0 +1,14 @@
+V4.0 建置快速步驟
+
+1. 建立新的 GitHub Repository。
+2. 將本 ZIP 解壓縮後所有內容上傳。
+   注意：.github 資料夾也要上傳。
+3. 開啟 GitHub → Actions。
+4. 選 Build V4.0 Windows Portable Release。
+5. 按 Run workflow。
+6. 完成後下載 Artifact：
+   XLSX_to_XLS_V4.0_Windows_Portable
+7. 解壓 Artifact 內的 ZIP。
+8. 公司電腦直接雙擊 XLSX_to_XLS_V4.0.exe。
+
+產線電腦不需要執行任何 BUILD。
