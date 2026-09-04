@@ -1,0 +1,88 @@
+name: Build V6.0 Production Stable Portable
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      - name: Install dependencies
+        shell: powershell
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build V6.0 Portable folder
+        shell: powershell
+        run: |
+          pyinstaller `
+            --noconfirm `
+            --clean `
+            --windowed `
+            --onedir `
+            --name XLSX_to_XLS_V6.0 `
+            src\main.py
+
+      - name: Create deployment folder
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Copy-Item "dist\XLSX_to_XLS_V6.0" "release\XLSX_to_XLS_V6.0_Portable" -Recurse -Force
+
+          @"
+          XLSX_to_XLS V6.0 產線簡易穩定版
+
+          使用方式：
+          1. 整個 XLSX_to_XLS_V6.0_Portable 資料夾複製到電腦。
+          2. 雙擊 XLSX_to_XLS_V6.0.exe。
+          3. 選擇一個或多個 XLSX。
+          4. 轉換完成後，到來源檔案旁的「XLS_轉換完成」資料夾取得 XLS。
+
+          注意：
+          - 不需要安裝 Microsoft Excel。
+          - 不需要 LibreOffice。
+          - 不使用 Excel COM。
+          - V6.0 以產線資料表為優先。
+          - 圖表、圖片、VBA、ActiveX、Pivot、Power Query、複雜條件格式不保證保留。
+          "@ | Set-Content -Encoding UTF8 "release\XLSX_to_XLS_V6.0_Portable\README_部署說明.txt"
+
+      - name: Validate EXE
+        shell: powershell
+        run: |
+          $exe = "release\XLSX_to_XLS_V6.0_Portable\XLSX_to_XLS_V6.0.exe"
+          if (!(Test-Path $exe)) { throw "V6.0 EXE missing." }
+          $bytes = [System.IO.File]::ReadAllBytes($exe)
+          if ($bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw "Invalid Windows EXE."
+          }
+          Write-Host "V6.0 EXE validation passed."
+
+      - name: Create ZIP
+        shell: powershell
+        run: |
+          Compress-Archive `
+            -Path "release\XLSX_to_XLS_V6.0_Portable" `
+            -DestinationPath "release\XLSX_to_XLS_V6.0_Windows_Portable.zip" `
+            -Force
+
+      - name: Upload V6.0 Portable
+        uses: actions/upload-artifact@v4
+        with:
+          name: XLSX_to_XLS_V6.0_Windows_Portable
+          path: release/XLSX_to_XLS_V6.0_Windows_Portable.zip
+          if-no-files-found: error
+          retention-days: 30
